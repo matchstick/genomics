@@ -1,0 +1,50 @@
+STEP 1 - Modify instance to support correct amount of storage space for the transfer to occur - Under Actions in EC2 go to Instance settings and then Change instance type
+(shop for instances here - https://instances.vantage.sh/?selected=c5d.2xlarge,c6id.8xlarge,m5ad.2xlarge or here https://aws.amazon.com/ec2/pricing/on-demand/)
+
+Before logging into instance modify it to c5d.2xlarge (for example, see below for others) from original c5n.4xlarge
+
+In Jupityer use plus to add a command line
+Go to '+' then 'Terminal'
+lsblk
+# See if there's another disk (not nvme0n1. Should be nvme1n1.)
+
+lsblk -f
+# See if that disk is formatted yet. It should not be. So there should be a FStype (a filesystem) on nvme0n1, and not nvme1n1.
+Example output:
+nvme1n1 should have nothing
+nvme0n1 should have filesystem type ext4
+
+sudo mkfs -t ext4 /dev/nvme1n1
+# Make a new file system on that disk, so that you can use it
+
+sudo mount /dev/nvme1n1 Data
+# Mount it to the folder "Data" located at /home/ubuntu/Data
+
+sudo chmod 777 Data
+# Set permissions so that any user can read/write to /home/ubuntu/Data or sub-folders of it.
+
+STEP 2 - Make the data transfer to the Data folder that has all the storage space
+# set current directory to the enlarged data folder on the virtual computer
+e.g. cd Downloads/WGET 
+
+# wget a given folder on genome center server - do this for the sample and features (if any) folders together
+e.g. wget -r --no-parent http://genomecenter.columbia.edu/ngs/release/singleCell/220624_STUART_SHANILA_4_HUMAN_10X/SW034/
+ 
+# move to AWS - takes entire contents of the downloaded directories and moves to S3 bucket
+e.g. aws s3 cp genomecenter.columbia.edu/ngs/release/singleCell/220624_STUART_SHANILA_4_HUMAN_10X "s3://farber-lab/spw13/scRNA data/SW031-SW034" --recursive
+ 
+# delete entire content of the whole genome center folder for that sample so you can start process again for the next sample
+rm -r genomecenter.columbia.edu
+
+WARNING. When the instance is stopped, all contents of /home/ubuntu/Data will be LOST. Must transfer to S3 bucket before closing instance
+Before restarting instance for analysis need to change back to c5n.4xlarge
+
+C5 High-CPU 24xlarge	c5d.24xlarge	192.0 GiB	96 vCPUs	3600 GB (4 * 900 GB NVMe SSD)	25 Gigabit	$4.6080 hourly	$2.9030 hourly	$1.5796 hourly	$9.0240 hourly	$7.3190 hourly
+C5 High-CPU Metal	c5d.metal	192.0 GiB	96 vCPUs	3600 GB (4 * 900 GB NVMe SSD)	25 Gigabit	$4.6080 hourly	$2.9030 hourly	$1.5546 hourly	$9.0240 hourly	$7.3190 hourly
+C5 High-CPU 18xlarge	c5d.18xlarge	144.0 GiB	72 vCPUs	1800 GB (2 * 900 GB NVMe SSD)	25 Gigabit	$3.4560 hourly	$2.1770 hourly	$1.1659 hourly	$6.7680 hourly	$5.4890 hourly
+C5 High-CPU 12xlarge	c5d.12xlarge	96.0 GiB	48 vCPUs	1800 GB (2 * 900 GB NVMe SSD)	12 Gigabit	$2.3040 hourly	$1.4520 hourly	$1.0898 hourly	$4.5120 hourly	$3.6600 hourly
+C5 High-CPU 9xlarge	c5d.9xlarge	72.0 GiB	36 vCPUs	900 GB NVMe SSD	10 Gigabit	$1.7280 hourly	$1.0890 hourly	$0.6435 hourly	$3.3840 hourly	$2.7450 hourly
+C5 High-CPU Quadruple Extra Large	c5d.4xlarge	32.0 GiB	16 vCPUs	400 GB NVMe SSD	Up to 10 Gigabit	$0.7680 hourly	$0.4840 hourly	$0.3153 hourly	$1.5040 hourly	$1.2200 hourly
+C5 High-CPU Double Extra Large	c5d.2xlarge	16.0 GiB	8 vCPUs	200 GB NVMe SSD	Up to 10 Gigabit	$0.3840 hourly	$0.2420 hourly	$0.1364 hourly	$0.7520 hourly	$0.6100 hourly
+C5 High-CPU Extra Large	c5d.xlarge	8.0 GiB	4 vCPUs	100 GB NVMe SSD	Up to 10 Gigabit	$0.1920 hourly	$0.1210 hourly	$0.0695 hourly	$0.3760 hourly	$0.3050 hourly
+C5 High-CPU Large	c5d.large	4.0 GiB	2 vCPUs	50 GB NVMe SSD	Up to 10 Gigabit	$0.0960 hourly	$0.0600 hourly	$0.0324 hourly	$0.1880 hourly	$0.1520 hourly
